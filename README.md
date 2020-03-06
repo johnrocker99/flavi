@@ -5,7 +5,9 @@ Amino acid replacement matrices play an important role in analyzing protein sequ
 Our program estimates a substitution model that is likely represent of evolutionary process of a given set of alignments the best. 
 Using an appropriate substitution model will enhance the accuracy of maximum likelihood tree inference. 
 The program is available for Linux operating system.
-<br>The program requires software IQ-TREE (http://www.iqtree.org/) and path to IQTREE folder must be entered at line 39.
+<br><br><b>Note:</b><br>
+<br>1. The program requires software IQ-TREE (http://www.iqtree.org/) and path to IQTREE folder must be entered at line 42.
+<br>2. The data size must large enough to gain a reliable substitution model.
 <br><br><b>Commands:</b><br>
 <br><i>
 python Est.py -d [alignment_directory] -t [number_of_thread] -i [maximum_iteration] -mset [set_of_models] -th [correlation_threshold] 
