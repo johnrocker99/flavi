@@ -1,8 +1,7 @@
 ﻿#Author: Thulek@gmail.com
-#Estimating the model using Iqtree
-#Input: a set of alignment
-#Output: a substitution model that represent the evolutionary process of input
- 
+#A script to estimate an amino acid substitution model from a set of alignments using the QMaker program 
+#https://www.biorxiv.org/content/10.1101/2020.02.20.958819v1
+
 from os import listdir
 from os.path import isfile, join
 import os
@@ -22,31 +21,24 @@ parser = argparse.ArgumentParser(description = text)
 
 jobIds = arr.array('i')
 
-parser.add_argument("-d", "--directory", help="The Phylip aligments folder (* required)")
-parser.add_argument("-t", "--thread", help="The number of threads (sub-jobs) ")
-parser.add_argument("-i", "--iter", help="iter ")
-parser.add_argument("-m", "--model", help="The model that be used to train (optional, default: GTR20)")
-parser.add_argument("-mset", "--mset", help="Set of models, default: FLU,HIVb,HIVw,JTT,WAG,LG")
-parser.add_argument("-th", "--threshold", help = "Correlation threshold, range: 0 - 1")
+parser.add_argument("-d", "--directory", help="The folder of alignments in the Phylip format")
+parser.add_argument("-t", "--thread", help="The number of threads, default = 1 ")
+parser.add_argument("-mset", "--mset", help="Set of models, default = FLU,HIVb,HIVw,JTT,WAG,LG")
+
 # read arguments from the command line
 args = parser.parse_args()
 
 
-if args.iter:
-	iter = int(args.iter)
-else:
-	iter = 3
-
 maxJob = 4
+iqtree_path = "iqtree/" ############# enter path to IQTREE folder here ################
 
-iqtree_path = "$IQTREE/" ##### enter path to IQTREE folder here #####
 mset = "FLU,HIVb,HIVw,JTT,WAG,LG"
 if args.mset:
 	mset = args.mset
 THRESHOLD = 0.99
-if args.threshold:
-	if (args.threshold>0) and (args.threshold<=1):
-		THRESHOLD = args.threshold
+#if args.threshold:
+#	if (args.threshold>0) and (args.threshold<=1):
+#		THRESHOLD = args.threshold
 
 #########CLONE A FILE FROM ANOTHER FILE WITH A RANGE##############
 
@@ -125,11 +117,7 @@ def get_files_by_file_size(dirname, reverse=False):
 	return filepaths			
 
 #Model-joint
-model = ""
-if args.model:
-	model = str(args.model)
-else:
-	model = "GTR20"
+model = "GTR20"
 
 NEWREV = ""
 
@@ -168,16 +156,18 @@ if "/" in alnFolder:
 	alnName = alnTmpName[len(alnTmpName)-1].strip()
 else:
 	alnName = alnFolder
-		
+
+iter = 500	
+last = it	
 ###Loop - iter times
 while (it <= iter):
 	####MULTIPLE SUB-JOBS	
 	if nThread > 1: #if split multiple sub-jobs
 		for x in range(1,nThread+1):
 			if it == 1:
-				command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+"."+str(x)+" --no-seq-comp -mset "+mset+"  -cmax 16 -nt 36 -safe -pre "+alnFolder+"."+str(it)+"."+str(x)+""
+				command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+"."+str(x)+" --no-seq-comp -mset "+mset+"  -cmax 16 -nt AUTO -safe -pre "+alnFolder+"."+str(it)+"."+str(x)+""
 			else:
-				command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+"."+str(x)+" -t "+alnFolder+"."+str(it-1)+"."+str(x)+".treefile --no-seq-comp -mset "+mset+"  -cmax 16 -nt 36 -safe -pre "+alnFolder+"."+str(it)+"."+str(x)+""
+				command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+"."+str(x)+" -t "+alnFolder+"."+str(it-1)+"."+str(x)+".treefile --no-seq-comp -mset "+mset+"  -cmax 16 -nt AUTO -safe -pre "+alnFolder+"."+str(it)+"."+str(x)+""
 			os.system(command)
 			
 		cmd = "python joinNex_os.py -d "+alnFolder+"."+str(it)+" -t "+str(nThread) #MERGE TREEFILE & NEXFILE
@@ -190,7 +180,7 @@ while (it <= iter):
 				init_model="--init-model "+NEWREV
 			else:
 				init_model = ""
-			command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+"."+str(it)+".nex -te "+alnFolder+"."+str(it)+".trees --no-seq-comp -nt 36 -safe --model-joint "+model+" "+init_model+" -pre "+alnFolder+"."+str(it)+"."+model
+			command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+"."+str(it)+".nex -te "+alnFolder+"."+str(it)+".trees --no-seq-comp -nt AUTO -safe --model-joint "+model+" "+init_model+" -pre "+alnFolder+"."+str(it)+"."+model
 			os.system(command)
 				
 		#read new paml
@@ -199,18 +189,20 @@ while (it <= iter):
 			if(os.path.isfile(alnFolder+".M"+str(it)+".PAML")):
 				NEWREV = alnFolder+".M"+str(it)+".PAML"
 				print("NEWREV: "+alnFolder+".M"+str(it)+".PAML")
+				last = it
 				if it >= 2:
 					correlValue = float(correlMatrix(alnFolder+".M"+str(it-1)+".PAML",alnFolder+".M"+str(it)+".PAML"))
 					if correlValue > THRESHOLD:
+						#last = it
 						it = iter + 1 # quit if correlation > THRESHOLD
 						print ("Correlation of NEWREV and CURREV is "+ str(correlValue) )
 	
 	#NO SUB-JOB
 	else: #if only one job
 		if it == 1:
-			command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+" --no-seq-comp -mset "+mset+"  -cmax 16 -nt 36 -safe -pre "+alnFolder+"."+str(it)+""
+			command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+" --no-seq-comp -mset "+mset+"  -cmax 16 -nt AUTO -safe -pre "+alnFolder+"."+str(it)+""
 		else:
-			command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+" -t "+alnFolder+"."+str(it-1)+".treefile --no-seq-comp -mset "+mset+"  -cmax 16 -nt 36 -safe -pre "+alnFolder+"."+str(it)+""
+			command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+" -t "+alnFolder+"."+str(it-1)+".treefile --no-seq-comp -mset "+mset+"  -cmax 16 -nt AUTO -safe -pre "+alnFolder+"."+str(it)+""
 		os.system(command)
 		
 		print("Finish Step 1")
@@ -221,7 +213,7 @@ while (it <= iter):
 				init_model="--init-model "+NEWREV
 			else:
 				init_model = ""
-			command = iqtree_path+"iqtree2 --seed 1 -S "+alnFolder+"."+str(it)+".best_model.nex -te "+alnFolder+"."+str(it)+".treefile --no-seq-comp -nt 36 -safe --model-joint "+model+" "+init_model+" -pre "+alnFolder+"."+str(it)+"."+model
+			command = iqtree_path+"iqtree --seed 1 -S "+alnFolder+"."+str(it)+".best_model.nex -te "+alnFolder+"."+str(it)+".treefile --no-seq-comp -nt AUTO -safe --model-joint "+model+" "+init_model+" -pre "+alnFolder+"."+str(it)+"."+model
 			os.system(command)
 		
 		#Read new paml		
@@ -230,12 +222,16 @@ while (it <= iter):
 			if(os.path.isfile(alnFolder+".M"+str(it)+".PAML")):
 				NEWREV = alnFolder+".M"+str(it)+".PAML"
 				print("NEWREV: "+alnFolder+".M"+str(it)+".PAML")
+				last = it
 				if it >= 2:
 					correlValue = float(correlMatrix(alnFolder+".M"+str(it-1)+".PAML",alnFolder+".M"+str(it)+".PAML"))
 					if correlValue > THRESHOLD:
+						#last = it
 						it = iter + 1 # quit if correlation > THRESHOLD
 						print ("Correlation of NEWREV and CURREV is "+ str(correlValue))
 	it = it + 1	
+
+os.system("cp "+alnFolder+".M"+str(last)+".PAML "+alnFolder+".PAML")
 
 ###CLEAN TEMPORARY DATA
 nJob = 1
@@ -245,7 +241,7 @@ if nThread > 1:
 		nJob = nJob + 1
 
 nIt = 1
-while nIt <= iter:
+while nIt <= last:
 	os.system("rm "+alnFolder+"."+str(nIt)+".*")
 	nIt += 1
 
