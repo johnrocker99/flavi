@@ -15,4 +15,4 @@ python Est.py -d [alignment_directory] -t [number_of_thread] -mset [set_of_model
 &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;HIVb, HIVw, JTT, WAG, LG). The models are separated by ‘,’.
 <br><br><b><i>Example:</b> python Est.py -f Example</i>
 
-The estimated substitution models will be written to the file <b>[alignment_directory].Mx.PAML</b>. The file contains an exchangeability matrix and a frequency vector.
+The estimated substitution models will be written to the file <b>[alignment_directory].PAML</b>. The file contains an exchangeability matrix and a frequency vector.
