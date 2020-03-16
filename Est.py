@@ -35,7 +35,7 @@ iqtree_path = "iqtree/" ############# enter path to IQTREE folder here #########
 mset = "FLU,HIVb,HIVw,JTT,WAG,LG"
 if args.mset:
 	mset = args.mset
-THRESHOLD = 0.99
+THRESHOLD = 0.999
 #if args.threshold:
 #	if (args.threshold>0) and (args.threshold<=1):
 #		THRESHOLD = args.threshold
